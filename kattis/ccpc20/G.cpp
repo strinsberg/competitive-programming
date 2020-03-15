@@ -4,20 +4,7 @@ using namespace std;
 #define ll long long
 #define endl '\n'
 
-vetor<int> dp;
-int fib(int m) {
-  dp[0] = dp[1] = 1;
-  for (int 
-}
-
-void solve(int n) {
-  int ans = 0;
-  
-
-
-  cout << ans << endl;
-}
-
+#define MAX 1005
 
 int main() {
   ios_base::sync_with_stdio(0); cin.tie(NULL);
@@ -25,8 +12,19 @@ int main() {
   int n; cin >> n;
 
   for (int i = 0; i < n; i++) {
-    int x; cin >> x;
-    solve(x);
+    int m; cin >> m;
+    
+    vector<int> V(MAX, 0);
+    vector<int> fib(MAX, 1);
+    for (int i = 2; i < MAX; i++) {
+      fib[i] = (fib[i-1] + fib[i-2]) % m;
+      if (V[fib[i]] > 0) {
+        cout << V[fib[i]] << endl;;
+        break;
+      } else {
+        V[fib[i]] = i;
+      }
+    }
   }
 
   return 0;
