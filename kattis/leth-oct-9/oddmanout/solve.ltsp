@@ -1,0 +1,41 @@
+(define get-list
+  (lambda (n)
+    (cond ((eq? n 0) NIL)
+          (T
+           (cons (read) (get-list (sub n 1)))))))
+
+(define get-odd
+  (lambda (guests)
+    (reduce (lambda (acc x)
+              (do
+                (print x)
+                (cond ((eq? x (car acc))
+                     (cdr acc))
+                    (T (cons x acc)))))
+            NIL
+            (sort guests))))
+
+(define solve
+  (lambda (i guests)
+    (do
+      (print "Case #")
+      (print i)
+      (print ": ")
+      (map (lambda (a)
+             (do (print a) (print " ")))
+           guests)
+      (print "\n"))))
+
+(define test
+  (lambda (n i)
+    (cond ((eq? n 0) NIL)
+          (T (do
+               (solve i (get-list (read)))
+               (test (sub n 1) (add i 1)))))))
+
+(define *main*
+  (lambda (_)
+    (let ((N (read)))
+      (test N 1))))
+
+(dump)
