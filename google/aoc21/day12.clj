@@ -3,35 +3,48 @@
 
 
 ;;; Input data ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Builds an adjacency list, but there has got to be a better way ;)
 (defn parse
+  "Split the input into pairs of strings representing edges in the graph.
+  Note these are undirected edges."
   [data-string]
   (->> (string/split data-string #"\n")
-       (map #(string/split % #"-"))
-       (reduce
-         (fn [acc [a b]]
-           (let [v (keyword a)
-                 u (keyword b)
-                 add-v-u (if (v acc)
-                           (assoc acc v (conj (v acc) u))
-                           (assoc acc v #{u}))
-                 add-u-v (if (u add-v-u)
-                           (assoc add-v-u u (conj (u add-v-u) v))
-                           (assoc add-v-u u #{v}))
-                 add-a-s (if (every? #(Character/isLowerCase %) a)
-                           (assoc add-u-v :small (conj (:small add-u-v) v))
-                           add-u-v)]
-             (if (every? #(Character/isLowerCase %) b)
-                           (assoc add-a-s :small (conj (:small add-a-s) u))
-                           add-a-s)))
-         {:small #{}})))
+       (map #(string/split % #"-"))))
 
 (def sample (parse (slurp "data/day12.sample")))
 (def full (parse (slurp "data/day12.full")))
 
 
 ;;; Helpers ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn string-pairs->adj-map
+  "Given a list of string pairs representing an edge from v->u in an undirected
+  graph, returns an adjacency map of nodes to sets of their connected nodes.
+  Converts strings to keywords for each node name."
+  [data]
+  (->> (set data)
+       (reduce (fn [acc x] (-> acc (conj x) (conj (reverse x)))) #{})
+       (map #(map keyword %))
+       (group-by first)
+       (map (fn [[k v]] [k (set (filter #(not= k %) (flatten v)))]))
+       (reduce (fn [acc [k v]] (assoc acc k v)) {})))
+
+(defn get-small-caves
+  "Specifically for this problem find all node names with fully lowercase
+  string names and create a set of them as keywords. This set is the set of
+  small caves."
+  [data]
+  (->> (set (flatten data))
+       (filter (fn [node-set] (every? #(Character/isLowerCase %) node-set)))
+       (filter #(not (contains? #{"end" "start"} %)))
+       (map keyword)
+       set))
+
+(defn cave-graph
+  "Takes the list of string edge pairs and creates an adjacency map from them
+  converted to keywords. Maps :small to the set of small caves."
+  [data]
+  (assoc (string-pairs->adj-map data)
+         :small (get-small-caves data)))
 
 ;; Part A we want to walk the graph and pass on a seen set that we put only
 ;; the lower case (and start) into. At each node we recurse on all unseen
@@ -40,41 +53,42 @@
   [v seen G]
   (if (= v :end)
     1
-    (let [next_ (filter #(not (contains? seen %))
-                        (get G v))
-          new-seen (if (contains? (:small G) v)
-                     (conj seen v)
-                     seen)]
-      (reduce + 0 (map #(paths % new-seen G) next_)))))
+    (let [next_ (filter #(not (contains? seen %)) (v G))
+          seen_ (if (contains? (:small G) v) (conj seen v) seen)]
+      (reduce + 0 (map #(paths % seen_ G) next_)))))
 
 ;; Same as A but when looking for which children can be looked at
 ;; we can go down one small path twice. Not start though. Probably could
 ;; use a map with counts instead of a set for seen, and seed it with
 ;; :small from G with 0 for all entries, but 2 for :start (and :end)
 (defn paths-2
-  [v seen G sm2?]
+  [v seen G sm?]
   (if (= v :end)
     1
-    (let [next_ (filter #(not= :start %)
-                        (filter #(or (not (contains? seen %))
-                                     (not sm2?))
-                                (v G)))
-          new-seen (if (contains? (:small G) v)
-                     (conj seen v)
-                     seen)]
-      (reduce + 0 (map #(paths-2 % new-seen G (or sm2? (contains? seen %))) next_)))))
+    (let [next_  (filter #(and (not= :start %)
+                               (or (not (contains? seen %))
+                                   (not sm?)))
+                         (v G))
+          seen_ (if (contains? (:small G) v) (conj seen v) seen)]
+      (apply + (map #(paths-2 % seen_ G (or sm? (contains? seen %)))
+                    next_)))))
 
 ;;; Solutions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn solve-a
   [data]
-  (paths :start #{:start} data))
+  (paths :start
+         #{:start}
+         (cave-graph data)))
 
 (solve-a sample) ; 19
 (solve-a full) ; 3761
 
 (defn solve-b
   [data]
-  (paths-2 :start #{:start} data false))
+  (paths-2 :start
+           #{:start}
+           (cave-graph data)
+           false))
        
 (solve-b sample) ; 103
 (solve-b full) ; 99138
