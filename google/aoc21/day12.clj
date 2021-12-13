@@ -49,29 +49,31 @@
 ;; Part A we want to walk the graph and pass on a seen set that we put only
 ;; the lower case (and start) into. At each node we recurse on all unseen
 ;; children and return the sum of the results. If we find end, we return 1.
-(defn paths
-  [v seen G]
-  (if (= v :end)
-    1
-    (let [next_ (filter #(not (contains? seen %)) (v G))
-          seen_ (if (contains? (:small G) v) (conj seen v) seen)]
-      (reduce + 0 (map #(paths % seen_ G) next_)))))
+(def paths
+  (memoize
+    (fn [v seen G]
+      (if (= v :end)
+        1
+        (let [next_ (filter #(not (contains? seen %)) (v G))
+              seen_ (if (contains? (:small G) v) (conj seen v) seen)]
+          (reduce + 0 (map #(paths % seen_ G) next_)))))))
 
 ;; Same as A but when looking for which children can be looked at
 ;; we can go down one small path twice. Not start though. Probably could
 ;; use a map with counts instead of a set for seen, and seed it with
 ;; :small from G with 0 for all entries, but 2 for :start (and :end)
-(defn paths-2
-  [v seen G sm?]
-  (if (= v :end)
-    1
-    (let [next_  (filter #(and (not= :start %)
-                               (or (not (contains? seen %))
-                                   (not sm?)))
-                         (v G))
-          seen_ (if (contains? (:small G) v) (conj seen v) seen)]
-      (apply + (map #(paths-2 % seen_ G (or sm? (contains? seen %)))
-                    next_)))))
+(def paths-2
+  (memoize
+    (fn [v seen G sm?]
+      (if (= v :end)
+        1
+        (let [next_  (filter #(and (not= :start %)
+                                   (or (not (contains? seen %))
+                                       (not sm?)))
+                             (v G))
+              seen_ (if (contains? (:small G) v) (conj seen v) seen)]
+          (apply + (map #(paths-2 % seen_ G (or sm? (contains? seen %)))
+                        next_)))))))
 
 ;;; Solutions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn solve-a
