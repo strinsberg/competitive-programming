@@ -34,128 +34,90 @@
        (map #(list (last (first %))
                    (Integer/parseInt (second %))))))
 
+
+;;; Process the folds ;;;
+
+(defn split-group
+  [i v]
+  (cond
+    (<= v i) :keep
+    (= v i) :lose
+    :else :fold))
+
+(defn split
+  [i dots y?]
+  (let [f (if y? second first)]
+    (group-by #(split-group i (f %)) dots)))
+
+(defn reflect-y
+  [i [x y]]
+  (list x (- i (- y i))))
+
+(defn reflect-x
+  [i [x y]]
+  (list (- i (- x i)) y))
+
+(defn fold
+  [[axis i] dots]
+  (let [grouped (split i dots (= axis \y))
+        reflect (if (= axis \y) reflect-y reflect-x)]
+    (reduce
+      #(conj %1 (reflect i %2))
+      (set (:keep grouped))
+      (set (:fold grouped)))))
+
+(defn process-folds
+  [folds dots]
+  (loop [fs folds
+         ds dots]
+    (if (empty? fs)
+      ds
+      (recur (rest fs) (fold (first fs) ds)))))
+
 (defn make-page
   [x y dots]
   (for [r (range y)]
-    (for [c (range x)]
-      (if (contains? dots (list c r)) 1 0))))
+    (apply
+      str
+      (for [c (range x)]
+        (if (contains? dots (list c r)) "#" " ")))))
 
-;; Folding is kind of messy because I used map for it with 2 lists.
-;; Because if the two maps are not the same size the result has the smaller
-;; size then it is possible to lose rows or columns if the fold is not in
-;; the center. To solve this and not have to rethink my folds I just set
-;; up a split function for each that pads the shorter list with 0
-;; rows or columns so that the fold is done as expected. This is not really
-;; too complicated, but it is a lot going on. It also does a lot of counting
-;; and concatting which is not very efficient.
-;; It would be good to rethink the problem and then see if there is a better
-;; way of doing the folds more concisely.
-
-(defn fold-y
-  [i page]
-  (let [[t b] (split-y i page)]
-    (map (fn [r1 r2]
-           (map #(bit-or %1 %2) r1 r2))
-         t
-         b)))
-
-(defn pad-rows
-  [n lines]
-  (concat
-    (for [i (range n)]
-      (for [j (range (count (first lines)))]
-        0))
-    lines))
-
-(defn split-y
-  [i page]
-  (let [top (take i page)
-        bottom (reverse (drop (inc i) page))
-        nt (count top)
-        nb (count bottom)]
-    (cond
-      (> nt nb) [top (pad-rows (- nt nb) bottom)]
-      (> nb nt) [(pad-rows (- nb nt) top) bottom]
-      :else [top bottom])))
-
-(defn fold-x
-  [i page]
-  (map (fn [line]
-         (let [[r l] (split-x i line)]
-           (map #(bit-or %1 %2) r l)))
-       page))
-
-(defn pad
-  [n row]
-  (concat (for [i (range n)] 0) row))
-
-(pad 3 '(1 1 1))
-
-(defn split-x
-  [i page]
-  (let [left (take i page)
-        right (reverse (drop (inc i) page))
-        nl (count left)
-        nr (count right)]
-    (cond
-      (> nl nr) [left (pad (- nl nr) right)]
-      (> nr nl) [(pad (- nr nl) left) right]
-      :else [left right])))
-
-(defn fold-all
-  [folds page]
-  (loop [fs folds
-         pg page]
-    (prn (first fs) (count pg) (count (first pg)))
-    (cond
-      (empty? fs) pg
-      (= \y (first (first fs)))
-         (recur (rest fs) (fold-y (second (first fs)) pg))
-      :else
-         (recur (rest fs) (fold-x (second (first fs)) pg)))))
 
 ;;; Solutions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn solve-a
   [data]
-  (->>
-    (let [dots (get-dots data)
-          fold (first (get-folds data))
-          x (get-size first dots)
-          y (get-size second dots)
-          page (make-page x y dots)]
-      (if (= \y (first fold))
-        (fold-y (second fold) page)
-        (fold-x (second fold) page)))
-    flatten
-    (apply +)))
+  (let [dots (get-dots data)
+        folds (get-folds data)]
+    (count (fold (first folds) dots))))
 
 (solve-a sample) ; 17
 (solve-a full) ; 701
 
+;; Note the use of make-page will create a smaller result page than
+;; expected if rows or columns on the outer edges have no dots. This is
+;; OK for the intended solution, but may not work in other situations.
+;; For that the initial size will need to be processed with the folds to
+;; see what the page size will be at the end.
 (defn solve-b
   [data]
-  (let [dots (get-dots data)
-        folds (get-folds data)
+  (let [dots (process-folds (get-folds data) (get-dots data))
         x (get-size first dots)
-        y (get-size second dots)
-        page (make-page x y dots)]
-    (fold-all folds page)))
+        y (get-size second dots)]
+    (make-page x y dots)))
        
 (solve-b sample)
-; ((1 1 1 1 1)
-;  (1 0 0 0 1)
-;  (1 0 0 0 1)
-;  (1 0 0 0 1)
-;  (1 1 1 1 1)
-;  (0 0 0 0 0)
-;  (0 0 0 0 0))
+; ("#####"
+;  "#   #"
+;  "#   #"
+;  "#   #"
+;  "#####")
 
-(map prn (solve-b full))
-; (1 1 1 1  1 1 1 0  1 1 1 1  1 0 0 1  1 1 1 0  1 1 1 1  0 0 1 1  1 0 0 0 )
-; (1 0 0 0  1 0 0 1  1 0 0 0  1 0 1 0  1 0 0 1  1 0 0 0  0 0 0 1  1 0 0 0 )
-; (1 1 1 0  1 0 0 1  1 1 1 0  1 1 0 0  1 1 1 0  1 1 1 0  0 0 0 1  1 0 0 0 )
-; (1 0 0 0  1 1 1 0  1 0 0 0  1 0 1 0  1 0 0 1  1 0 0 0  0 0 0 1  1 0 0 0 )
-; (1 0 0 0  1 0 0 0  1 0 0 0  1 0 1 0  1 0 0 1  1 0 0 0  1 0 0 1  1 0 0 0 )
-; (1 0 0 0  1 0 0 0  1 1 1 1  1 0 0 1  1 1 1 0  1 1 1 1  0 1 1 0  1 1 1 1 )
+(solve-b full)
+; ("#### ###  #### #  # ###  ####   ## #   "
+;  "#    #  # #    # #  #  # #       # #   "
+;  "###  #  # ###  ##   ###  ###     # #   "
+;  "#    ###  #    # #  #  # #       # #   "
+;  "#    #    #    # #  #  # #    #  # #   "
+;  "#    #    #### #  # ###  ####  ##  ####")
 
 
