@@ -1,0 +1,2 @@
+*.nrepl-port
+sol-clj/*.nrepl-port
