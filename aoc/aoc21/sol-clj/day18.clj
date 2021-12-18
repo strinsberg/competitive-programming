@@ -9,6 +9,12 @@
 
 ;;; New ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Some of this is inefficient, calling explode? so much for one. However,
+;; as simple as this overall process is I am having a bit of trouble organizing
+;; the functions in a different way so that snail-explode does not call
+;; explode and that it can be called directly to see if it will explode. If
+;; it did then go explode again, if it did not then call split and start over.
+
 (defn add-leftmost
   [v node]
   (if (int? node)
@@ -91,7 +97,6 @@
     (reduce
       snail-add
       data)))
-
 
 (solve-a sample) ; 3488
 (solve-a sample2) ; 4140
