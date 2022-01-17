@@ -1,12 +1,13 @@
 (ns aoc-day2
   (:require [clojure.string :as string]))
 
+
 ;;; Input data ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn parse
   [data-string]
   (map #(let [[dir amt] (string/split %1 #" +")]
-          [dir (read-string amt)]) 
-        (string/split data-string #"\n")))
+          [dir (read-string amt)])
+       (string/split data-string #"\n")))
 
 (def sample (parse (slurp "data/day2.sample")))
 (def full (parse (slurp "data/day2.full")))
@@ -29,15 +30,15 @@
 (defn move
   [step-fn commands]
   (reduce
-    (fn [acc cmd] (step-fn acc cmd))
-    [0 0 0]
-    commands))
+   (fn [acc cmd] (step-fn acc cmd))
+   [0 0 0]
+   commands))
 
 ;;; Solutions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn solve-a
   [data]
-    (let [[x y _] (move step-a data)]
-      (* x y)))
+  (let [[x y _] (move step-a data)]
+    (* x y)))
 
 (solve-a sample) ; 150
 (solve-a full) ; 1924923
@@ -46,7 +47,6 @@
   [data]
   (let [[x y _] (move step-b data)]
     (* x y)))
-       
+
 (solve-b sample) ; 900
 (solve-b full) ; 1982495697
-
