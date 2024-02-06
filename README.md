@@ -1,9 +1,8 @@
 # Competetive Programming
 
-An archive of some of my solutions to contest problems on various sites.
+An archive of **some** of my solutions to contest problems on various sites.
 
-Since many judges save records of submissions, not all solutions are here. If I was just casually solving problems
-I may have used an online ide and submitted without ever saving the code locally.
+Since many judges save records of submissions, not all my solutions are here. If I was just casually solving problems or working with other students I will not have bothered to save all of my solutions.
 
 
 ## Online Judges
